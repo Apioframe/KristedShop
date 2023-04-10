@@ -41,7 +41,7 @@ local function stockLookup(rid, id, filter)
         local count = 0
         local rawNames = peripheral.getNames()
         for k,v in ipairs(rawNames) do
-            if string.match(v, "chest") == "chest" then
+            if string.match(v, "chest") == "chest" or string.match(v, "ender_storage") == "ender_storage" then
                 local chest = peripheral.wrap(v)
                 for kk,vv in pairs(chest.list()) do
                     if vv.name == id and checkFilter(chest.getItemDetail(kk),filter) then
