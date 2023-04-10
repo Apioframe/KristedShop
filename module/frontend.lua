@@ -466,6 +466,7 @@ end
 
 function start()
     local layout = require("../layout")
+    _G.kristedData.layout = layout
     local updater = require("../frontend-modules/updater")
     parallel.waitForAny(function()
         local stat, err = pcall(updater,layout)

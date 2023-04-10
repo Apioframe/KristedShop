@@ -118,12 +118,47 @@ function dropItem(id, filters, limit)
     end
 end
 
-local function backend()
+-- returns true if yes,
+-- otherwise the reason
+function allowProcessPurchase(transaction)
+    local meta = kristapi.parseMeta(transaction.metadata)
+    if meta["metaname"] then
+        meta["itemname"] = meta["metaname"]
+    end
+    if meta["itemname"] == nil then
+        return false, "no itemname"
+    end
+    local item = nil
+    for k,v in ipairs(config.Items) do
+        if v.Name == meta["itemname"] or v.Alias == meta["itemname"] then
+            item = v
+        end
+    end
+    if item == nil then
+        return false, "no such item"
+    end
+    if stockLookup(item.rawId,item.Id,item.filters) == 0 then
+        return false, "out of stock of item"
+    end
+    if transaction.metadata ~= nil or transaction.sent_name ~= nil then
+    else
+        return false, "no meta"
+    end
+    return true
+end
 
+function mindTransaction(trans)
+    if (trans.to == config["Wallet-id"]) and (trans.sent_name == nil and config["Accept-wallet-id"] or config["Wallet-vanity"] == "" and config["Accept-wallet-id"] or trans.sent_name == config["Wallet-vanity"]) then
+        return true
+    end
+    return false
+end
+
+function initializeSocket()
     local socket = kristapi.websocket()
     _G.KristedSocket = socket
     socket.send('{"type":"subscribe","event":"transactions","id":1}')
-    function soc()
+    return function()
         local ok, dta = pcall(socket.receive)
 
         if not ok then
@@ -135,117 +170,125 @@ local function backend()
         end
         return dta
     end
-    while true do
-        --::cont::
-        local dta = soc()
+end
 
-        --dta = json.decode(dta)
-        if dta ~= nil then
-            ok, dta = pcall(textutils.unserialiseJSON, dta)
-            if not ok then
-                logger.log(3, "JSON error: "..dta)
-                return
+function dispenseItem(trans, meta)
+    local tc = false
+    local vav = nil
+    print(meta.itemname)
+    for k,v in ipairs(config.Items) do
+        if v.Name == meta.itemname or v.Alias == meta.itemname then
+            tc = true
+            vav = v
+        end
+    end
+    local count = math.floor((trans.value / vav.Price)+0.5)
+    local exchange = math.floor(trans.value - (stockLookup(vav.rawId,vav.Id,vav.filters)*vav.Price))
+    if exchange >= 0 then
+        preDropItem(vav.Id, vav.filters, stockLookup(vav.rawId,vav.Id,vav.filters))
+        if exchange ~= 0 then
+            if meta["return"] ~= nil then
+                kristapi.makeTransaction(config["Wallet-Key"], trans.from, exchange, meta["return"]..";message=Here is your change")
+            else
+                kristapi.makeTransaction(config["Wallet-Key"], trans.from, exchange, "message=Here is your change")
             end
-            if dta.type == "event" and dta.event == "transaction" then
-                local trans = dta.transaction
-                --print(trans.sent_name)
-                if (trans.to == config["Wallet-id"]) and (trans.sent_name == nil and config["Accept-wallet-id"] or config["Wallet-vanity"] == "" and config["Accept-wallet-id"] or trans.sent_name == config["Wallet-vanity"]) then
-                    local monitor = peripheral.find("monitor")
-                    if trans.metadata ~= nil or trans.sent_name ~= nil then
-                        local meta = {}
-                        if trans.sent_name == nil then
-                            meta = kristapi.parseMeta(trans.metadata)
-                        else
-                            if trans.metadata ~= nil then
-                                meta = kristapi.parseMeta(trans.metadata)
-                            end
-                            --print(trans.sent_metaname)
-                            if not meta.itemname then
-                                meta.itemname = trans.sent_metaname
-                            end
-                        end
+        end
+    else
+        preDropItem(vav.Id, vav.filters, count)
+    end
+    local change = ((trans.value / vav.Price)-count)*vav.Price
+    if change >= 1 then
+        if meta["return"] ~= nil then
+            kristapi.makeTransaction(config["Wallet-Key"], trans.from, change, meta["return"]..";message=Here is your change")
+        else
+            kristapi.makeTransaction(config["Wallet-Key"], trans.from, change, "message=Here is your change")
+        end
+    end
+    return count, exchange, change
+end
 
-                        if meta["return"] ~= nil or true then
-                            --print(trans.from, trans.to, trans.value, meta["return"] or "no one")
-                            logger.log(1,"Payment received, from "..trans.from.." to "..trans.to..", value: "..trans.value..", return: "..meta["return"] or "no one")
-                            if meta.itemname ~= nil and meta.itemname ~= "" then
-                                local tc = false
-                                local vav = nil
-                                for k,v in ipairs(config.Items) do
-                                    if v.Name == meta.itemname or v.Alias == meta.itemname then
-                                        tc = true
-                                        vav = v
-                                    end
-                                end
-                                if tc then
-                                    if stockLookup(vav.rawId,vav.Id,vav.filters) > 0 then
-                                        local count = math.floor(trans.value / vav.Price)
-                                        local exchange = math.floor(trans.value - (stockLookup(vav.rawId,vav.Id,vav.filters)*vav.Price))
-                                        if exchange >= 0 then
-                                            preDropItem(vav.Id, vav.filters, stockLookup(vav.rawId,vav.Id,vav.filters))
-                                            if exchange ~= 0 then
-                                                if meta["return"] ~= nil then
-                                                    kristapi.makeTransaction(config["Wallet-Key"], trans.from, exchange, meta["return"]..";message=Here is your change")
-                                                else
-                                                    kristapi.makeTransaction(config["Wallet-Key"], trans.from, exchange, "message=Here is your change")
-                                                end
-                                            end
-                                        else
-                                            preDropItem(vav.Id, vav.filters, count)
-                                        end
-                                        local change = ((trans.value / vav.Price)-count)*vav.Price
-                                        if change >= 1 then
-                                            if meta["return"] ~= nil then
-                                                kristapi.makeTransaction(config["Wallet-Key"], trans.from, change, meta["return"]..";message=Here is your change")
-                                            else
-                                                kristapi.makeTransaction(config["Wallet-Key"], trans.from, change, "message=Here is your change")
-                                            end
-                                        end
-                                        if config["Discord-Webhook"] then
-                                            dw.sendEmbed(config["Discord-Webhook-URL"], "Kristed", "Someone bought something", 0x0099ff,
-                                                    {{["name"]="From address",["value"]=trans.from},{["name"]="Value",["value"]=trans.value},{["name"]="Return address",["value"]=meta["return"]},{["name"]="Itemname",["value"]=meta.itemname},{["name"]="Meta",["value"]="`"..trans.metadata.."`"},{["name"]="Items dropped",["value"]=tostring(count)},{["name"]="Exchange",["value"]=tostring(exchange)},{["name"]="Change",["value"]=tostring(change)}})
-                                        end
-                                    else
-                                        if meta["return"] ~= nil then
-                                            kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, meta["return"]..";message=We are out of stock from: "..meta.itemname)
-                                        else
-                                            kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message=We are out of stock from: "..meta.itemname)
-                                        end
-                                    end
-                                else
-                                    if meta["return"] ~= nil then
-                                        kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, meta["return"]..";message=We can't give you: "..meta.itemname)
-                                    else
-                                        kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message=We can't give you: "..meta.itemname)
-                                    end
-                                end
-                            else
-                                if meta["return"] ~= nil then
-                                    kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, meta["return"]..";message=Please specify an itemname")
-                                else
-                                    kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message=Please specify an itemname")
-                                end
-                            end
-                        else
-                            kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message=Please send the krist from switchcraft, or specify return name")
-                        end
+function processWebhook(trans, meta, count, exchange, change, success)
+    if config["Discord-Webhook"] then
+        --[[dw.sendEmbed(config["Discord-Webhook-URL"], "Kristed", "Someone bought something", 0x0099ff,
+                {{["name"]="From address",["value"]=trans.from},{["name"]="Value",["value"]=trans.value},{["name"]="Return address",["value"]=meta["return"]},{["name"]="Itemname",["value"]=meta.itemname},{["name"]="Meta",["value"]="`"..trans.metadata.."`"},{["name"]="Items dropped",["value"]=tostring(count)},{["name"]="Exchange",["value"]=tostring(exchange)},{["name"]="Change",["value"]=tostring(change)}})]]
+
+        local embed = dw.sendBuilderEmbed()
+
+        embed
+                .setTitle("Kristed purchase info")
+                .setDescription("Someone bought something")
+                .setColor(0x0099ff)
+                .addField().setName("From address").setValue(trans.from).setInline(true).endField()
+                .addField().setName("Value").setValue(trans.value).setInline(true).endField()
+                .addField().setName("Return address").setValue(meta["return"]).setInline(true).endField()
+                .addField().setName("Itemname").setValue(meta.itemname).setInline(true).endField()
+                --.addField().setName("Meta").setValue("`"..trans.metadata.."`").setInline(true).endField() -- Just a debug thing
+                .addField().setName("Items dropped").setValue(tostring(count)).setInline(true).endField()
+                .addField().setName("Exchange").setValue(tostring(exchange)).setInline(true).endField()
+                .addField().setName("Change").setValue(tostring(change)).setInline(true).endField()
+                .send(config["Discord-Webhook-URL"])
+
+    end
+end
+
+function backend()
+    local soc = initializeSocket()
+    local layout = _G.kristedData.layout
+
+    function dataReceived(dta)
+        if dta.type == "event" and dta.event == "transaction" then
+            local trans = dta.transaction
+            if mindTransaction(trans) then
+                local oka, moszonnyu = allowProcessPurchase(trans)
+                if oka then
+                    local meta = kristapi.parseMeta(trans.metadata)
+                    if meta["metaname"] then
+                        meta["itemname"] = meta["metaname"]
+                    end
+                    logger.log(1,"Payment received, from "..trans.from.." to "..trans.to..", value: "..trans.value..", return: "..meta["return"] or "no one")
+
+                    local count, exchange, change = dispenseItem(trans, meta)
+
+                    processWebhook(trans, meta, count, exchange, change, true, "Successful purchase")
+                else
+
+                    local meta = kristapi.parseMeta(trans.metadata)
+                    if meta["metaname"] then
+                        meta["itemname"] = meta["metaname"]
+                    end
+                    local embed = dw.sendBuilderEmbed()
+
+                    embed
+                            .setTitle("Kristed purchase failure")
+                            .setDescription("Someone tried to buy something")
+                            .setColor(0xff0000)
+                            .addField().setName("Failure reason").setValue(moszonnyu).setInline(true).endField()
+                            .addField().setName("From").setValue(trans.from).setInline(true).endField()
+                            .addField().setName("Meta").setValue(textutils.serialise(meta)).endField()
+                            .send(config["Discord-Webhook-URL"])
+
+                    if meta["return"] ~= nil then
+                        kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, meta["return"]..";message="..moszonnyu)
                     else
-                        kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message=Got no meta!")
+                        kristapi.makeTransaction(config["Wallet-Key"], trans.from, trans.value, "message="..moszonnyu)
                     end
                 end
             end
-        else
-            local monitor = peripheral.find("monitor")
-            local w,h = monitor.getSize()
-            monitor.setTextColor(0x4000)
-            monitor.setCursorPos(w-#("Socket problem"),1)
-            monitor.clearLine()
-            monitor.write("Socket problem")
-            monitor.setCursorPos(w-#("Shop with caution"),2)
-            monitor.clearLine()
-            monitor.write("Shop with caution")
         end
-        os.sleep(0)
+    end
+
+    while true do
+        local dta = soc()
+        if not dta then
+            logger.log(2, "Socket problem")
+        else
+            ok, dta = pcall(textutils.unserialiseJSON, dta)
+            if not ok then
+                logger.log(3, "JSON error: "..dta)
+            else
+                dataReceived(dta)
+            end
+        end
     end
 end
 

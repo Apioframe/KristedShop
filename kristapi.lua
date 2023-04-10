@@ -39,7 +39,12 @@ api.parseMeta = function(meta)
         if b[2] ~= nil then
             out[b[1]] = b[2]
         else
-            out[b[1]] = true
+            -- if matches the format of a krist address with metaname (ie test@shop.kst), we get the metaname, aka the test
+            if(b[1]:match("^.+@.+%.kst$")) then
+                local c = mysplit(b[1], "@")
+                out["metaname"] = c[1]
+            end
+            --out[b[1]] = true
         end
     end
     return out
