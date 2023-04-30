@@ -1,3 +1,5 @@
+# SUPERSEDED BY KRIPTON
+
 # KristedShop
 > A shop system aimed to be simple to use, easy to configure, and include lots of features.
 
