@@ -4,7 +4,7 @@
 > PLEASE NOTE: This is a work in progress, you WILL experience bugs. Please report them to the issue tracker.
 
 ## How to install?
-1. paste this into a cc turtle: `wget https://raw.githubusercontent.com/afonya2/KristedShop/main/installer.lua`
+1. paste this into a cc turtle: `wget https://raw.githubusercontent.com/Apioframe/KristedShop/main/installer.lua`
 2. run the `installer.lua`
 3. wait for it
 4. edit the config.lua
