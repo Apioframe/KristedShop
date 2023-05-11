@@ -67,21 +67,7 @@ local function stockLookup(rid, id, filter)
     return itemCache[rid].count
 end
 
---[[local function stockLookup(id)
-    local count = 0
-    local rawNames = peripheral.getNames()
-    for k,v in ipairs(rawNames) do
-        if string.match(v, "chest") == "chest" then
-            local chest = peripheral.wrap(v)
-            for kk,vv in pairs(chest.list()) do
-                if vv.name == id then
-                    count = count + vv.count
-                end
-            end
-        end
-    end
-    return count
-end]]
+
 
 function preDropItem(id, filters, count)
     local stacks = {}

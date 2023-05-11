@@ -80,6 +80,9 @@ if not fs.exists("layout.lua") then
     shell.run("wget https://raw.githubusercontent.com/afonya2/KristedShop/"..branch.."/layout.lua layout.lua")
 end
 
+print("Downloading the ui...")
+shell.run("wget run https://basalt.madefor.cc/install.lua packed")
+
 print("Generating startup...")
 local fi = fs.open("startup.lua","w")
 fi.write('shell.run("main.lua")')

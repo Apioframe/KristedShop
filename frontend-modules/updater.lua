@@ -27,7 +27,6 @@ function updater(layout)
                 table.insert(layout, 1, {type = "Text", text = "in ?? seconds", align = "right", color=0x4000})
                 table.insert(layout, 1, {type = "Text", text = "Automatic update", align = "right", color=0x4000})
 
-
                 for i=60,1,-1 do
                     layout[2].text = "in "..i.." seconds"
                     os.sleep(1)

@@ -108,9 +108,15 @@ function getLogger(name)
 
     function ret.log(level, data)
 
+
+        if data == nil then
+            data = level
+            level = 1
+        end
         if level == nil then
             level = 1
         end
+
 
         term.write("["..os.date("%H:%M:%S").."] ")
         local levele = ""

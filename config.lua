@@ -27,7 +27,7 @@ return {
   },
   ["Enable-Dynamic-Pricing"]=false, --dynamic price
   ["Enable-Automatic-Update"]=true, --Enable automatic updates
-  ["Version"]="0.5.0-dev-1", --the kristed version, do not change unless you know what you are doing
+  ["Version"]="0.5.0-dev-2", --the kristed version, do not change unless you know what you are doing
   ["Decimal-Digits"]=3, -- How many decimal point digits do we want? ie 2 will be max 0.01, 5 will be max 0.00001
   ["branch"]="dev" -- The branch to use for updates
 }
