@@ -94,7 +94,7 @@ function frontend(layout)
     monitor.setBackgroundColor(colors.black)
     monitor.clear()
     monitor.setTextScale(0.5)
-    local main = basalt.addMonitor()
+    local main = basalt.addMonitor("main")
     main:setMonitor(monitor)
 
     function getxp(vav)
@@ -118,7 +118,7 @@ function frontend(layout)
     end
 
     function rebuildUi()
-        main:remove()
+        basalt.removeFrame("main")
         main = basalt.addMonitor()
         main:setMonitor(monitor)
         --main:setSize(main:getWidth()+2, main:getHeight())
