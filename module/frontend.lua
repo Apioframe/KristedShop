@@ -98,6 +98,7 @@ function frontend(layout)
     main:setMonitor(monitor)
 
     function getxp(vav)
+
         if vav.align == nil then
             vav.align = "left"
         end
@@ -120,6 +121,7 @@ function frontend(layout)
         main:remove()
         main = basalt.addMonitor()
         main:setMonitor(monitor)
+        --main:setSize(main:getWidth()+2, main:getHeight())
         local yy_btm = main:getHeight()+1
 
         function getyp(vav, he)
@@ -149,19 +151,83 @@ function frontend(layout)
             end
         end
 
+        local objects = {}
+
+        local bg = colors.gray
+        local fge = colors.white
+
         for k, v in ipairs(layout) do
             yy = yy + 1
             if v.type == "Header" then
+
+                print(fge, colors.white)
                 local laba = main:addLabel()
+                laba:setForeground(fge)
+                if v.background then
+                    laba:setBackground(v.background)
+                else
+                    laba:setBackground(bg)
+                end
+                --
                 laba:setText(v.text)
                 laba:setFontSize(2)
+                laba:setSize(laba:getWidth(), 3)
+
+
+
                 laba._i = k
-                laba:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight()))
-                yy = yy + 2
-                if v.align_h == "bottom" then
-                    yy_btm = yy_btm - laba:getHeight() - 2
+
+                if v.background then
+
+                    local p = main:addPane()
+                    p:setBackground(v.background)
+                    p:setSize(main:getWidth()+1, laba:getHeight()+2)
+                    p:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight())-1)
+
+                    laba:setBackground(v.background)
+                    laba:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight()))
+
+                  --  logger.log(0, "tux")
+                else
+                    laba:setBackground(bg)
+                    laba:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight()))
+
                 end
+                --laba:setForeground(fg)
+
+
+                yy = yy + 3
+                if v.align_h == "bottom" then
+                    for kk,vv in pairs(objects) do
+                        if vv.layoutobj.align_h == "bottom" then
+                            if vv.obj.getHeight == nil then
+                                for kkk, vvv in ipairs(vv.obj) do
+                                    vvv:setPosition(vvv:getX(), vvv:getY() - laba:getHeight())
+                                end
+                            else
+                                vv.obj:setPosition(vv.obj:getX(), vv.obj:getY() - laba:getHeight())
+                            end
+                        end
+                    end
+                end
+                table.insert(objects, {
+                    layoutobj=v,
+                    obj=laba
+                })
             elseif v.type == "Text" then
+
+                local function getxp(vav)
+                    if vav.align == nil then
+                        vav.align = "left"
+                    end
+                    if vav.align == "left" then
+                        return 1
+                    elseif vav.align == "center" then
+                        return "parent.w/2 - ((self.w-2)/2)"
+                    elseif vav.align == "right" then
+                        return "parent.w - (self.w-2)"
+                    end
+                end
 
                 local laba = main:addLabel()
 
@@ -169,10 +235,26 @@ function frontend(layout)
                 laba:setSize(#v.text+1, 1)
                 laba:setText(v.text)
                 laba:setPosition(getxp(v), getyp(v, laba:getHeight()))
+                laba:setForeground(fge)
+                laba:setBackground(bg)
                 laba._i = k
                 if v.align_h == "bottom" then
-                    yy_btm = yy_btm - laba:getHeight()
+                    for kk,vv in pairs(objects) do
+                        if vv.layoutobj.align_h == "bottom" then
+                            if vv.obj.getHeight == nil then
+                                for kkk, vvv in ipairs(vv.obj) do
+                                    vvv:setPosition(vvv:getX(), vvv:getY() - laba:getHeight())
+                                end
+                            else
+                                vv.obj:setPosition(vv.obj:getX(), vv.obj:getY() - laba:getHeight())
+                            end
+                        end
+                    end
                 end
+                table.insert(objects, {
+                    layoutobj=v,
+                    obj=laba
+                })
             elseif v.type == "SellTable" then
                 local lists = {}
                 local xx = 1
@@ -233,8 +315,33 @@ function frontend(layout)
                     koptat = koptat + 1
 
                 end
+                -- add a element to the bottom of the lists with the header color
+                for kk, vv in ipairs(lists) do
+                    vv:addItem(string.rep(" ", vv:getWidth()), v.colors.header, colors.white)
+                    vv:setSize(vv:getWidth(), vv:getHeight() + 1)
+                end
                 yy = yy + lists[1]:getHeight() - 1
-
+                if v.align_h == "bottom" then
+                    for kk,vv in pairs(objects) do
+                        if vv.layoutobj.align_h == "bottom" then
+                            if vv.obj.getHeight == nil then
+                                for kkk, vvv in ipairs(vv.obj) do
+                                    vvv:setPosition(vvv:getX(), vvv:getY() - laba:getHeight())
+                                end
+                            else
+                                vv.obj:setPosition(vv.obj:getX(), vv.obj:getY() - laba:getHeight())
+                            end
+                        end
+                    end
+                end
+                table.insert(objects, {
+                    layoutobj=v,
+                    obj=lists
+                })
+            elseif v.type == "background" then
+                main:setBackground(v.bg)
+                bg = v.bg
+                fge = tonumber(v.text)
             end
 
 

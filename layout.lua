@@ -2,7 +2,7 @@ return {
     {
         type="background",
         bg=0x8000,
-        text=0x1
+        text=colors.white
     },
     {
         type="Header",
