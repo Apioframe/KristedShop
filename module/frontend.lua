@@ -119,7 +119,7 @@ function frontend(layout)
 
     function rebuildUi()
         basalt.removeFrame("main")
-        main = basalt.addMonitor()
+        main = basalt.addMonitor("main")
         main:setMonitor(monitor)
         --main:setSize(main:getWidth()+2, main:getHeight())
         local yy_btm = main:getHeight()+1
