@@ -160,7 +160,7 @@ function frontend(layout)
             yy = yy + 1
             if v.type == "Header" then
 
-                print(fge, colors.white)
+              --  print(fge, colors.white)
                 local laba = main:addLabel()
                 laba:setForeground(fge)
                 if v.background then
