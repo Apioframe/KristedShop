@@ -118,9 +118,10 @@ function frontend(layout)
     end
 
     function rebuildUi()
-        basalt.removeFrame("main")
-        main = basalt.addMonitor("main")
-        main:setMonitor(monitor)
+        local elems = main:getObjects()
+        for k, v in pairs(elems) do
+            elems[k].element:remove()
+        end
         --main:setSize(main:getWidth()+2, main:getHeight())
         local yy_btm = main:getHeight()+1
 
@@ -160,7 +161,7 @@ function frontend(layout)
             yy = yy + 1
             if v.type == "Header" then
 
-              --  print(fge, colors.white)
+                --  print(fge, colors.white)
                 local laba = main:addLabel()
                 laba:setForeground(fge)
                 if v.background then
@@ -187,7 +188,7 @@ function frontend(layout)
                     laba:setBackground(v.background)
                     laba:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight()))
 
-                  --  logger.log(0, "tux")
+                    --  logger.log(0, "tux")
                 else
                     laba:setBackground(bg)
                     laba:setPosition("parent.w/2 - self.w/2", getyp(v, laba:getHeight()))
