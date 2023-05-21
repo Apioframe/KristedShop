@@ -351,8 +351,10 @@ function frontend(layout)
 
     parallel.waitForAny(function()
         while true do
+
             rebuildUi()
             basalt.drawFrames()
+
             os.sleep(1)
             yy = 0
         end
